@@ -1,0 +1,98 @@
+{
+"name": "Prashant Pal",
+"contact": {
+"email": "palprashant8980@gmail.com
+",
+"phone": "+91-8839436332",
+"linkedin": "linkedin.com/in/prashantpal0405",
+"github": "github.com/prashantpal8980",
+"location": "Shamgarh, Madhya Pradesh"
+},
+"summary": "Cybersecurity professional with hands-on experience in security monitoring, threat detection, and incident analysis. Certified in CEH and CompTIA Security+ with strong expertise in SIEM-related tools, IDS/IPS, and vulnerability assessment. Proven ability to triage alerts, investigate security events, and support incident response in cloud and network environments.",
+"skills": [
+"Security Monitoring & Alert Triage",
+"Incident Response & Investigation",
+"SIEM & IDS/IPS (Snort)",
+"Threat Hunting & IOC Analysis",
+"Vulnerability Assessment (Nessus)",
+"Penetration Testing (Metasploit, Nmap, Hydra)",
+"Network Analysis (Wireshark)",
+"Linux & Windows Systems",
+"Cloud Security (Oracle Cloud)",
+"IAM & Risk Assessment",
+"MITRE ATT&CK Framework (Basic)",
+"Python, Bash Scripting, SQL"
+],
+"experience": [
+{
+"title": "Research Analyst",
+"company": "Arcgate Technologies",
+"dates": "April 2025 - November 2025",
+"bullets": [
+"Analyzed large datasets and identified patterns to support security and technology research, maintaining 99.5% data accuracy.",
+"Streamlined data collection and reporting workflows, improving turnaround time by 20%.",
+"Collaborated with cross-functional teams to produce detailed reports aligned with client and compliance requirements.",
+"Documented research findings and ensured structured reporting, supporting audit-ready documentation practices."
+]
+},
+{
+"title": "Cybersecurity Research Intern",
+"company": "Indian Institute of Technology (IIT) Patna",
+"dates": "July 2024 - August 2024",
+"bullets": [
+"Developed an ML-based attack detection system to identify DDoS and SQL injection attacks with 80% accuracy.",
+"Performed traffic analysis and feature engineering on network datasets to support threat detection use cases.",
+"Reduced model training latency by 15%, improving efficiency in detecting potential security events.",
+"Simulated real-world attack scenarios to support proactive threat detection and analysis."
+]
+}
+],
+"projects": [
+{
+"name": "Secure Personal Portfolio Website",
+"tech": "Django, Oracle Cloud, Nginx, Gunicorn",
+"bullets": [
+"Deployed a secure web application with SSL/TLS, firewall rules, and reverse proxy configuration to mitigate web-based threats.",
+"Implemented security best practices aligned with secure deployment standards in cloud environments."
+]
+},
+{
+"name": "Infrastructure Security Hardening",
+"tech": "Nessus, ACLs, Linux",
+"bullets": [
+"Conducted vulnerability assessments and remediated 5 critical security flaws in a simulated enterprise environment.",
+"Implemented access control lists (ACLs) to block 99% of unauthorized traffic, strengthening network security posture."
+]
+},
+{
+"name": "Brute Force Attack Mitigation",
+"tech": "Hydra, Linux Security Controls",
+"bullets": [
+"Simulated brute-force attacks and implemented MFA and account lockout policies, eliminating unauthorized access attempts.",
+"Analyzed authentication logs to identify attack patterns and strengthen access controls."
+]
+},
+{
+"name": "Memory Gallery: Secure Photo Journal",
+"tech": "Django, SQL, Nginx",
+"bullets": [
+"Developed a secure web application with protections against XSS and SQL injection vulnerabilities.",
+"Improved server performance by 30% through optimized deployment and request handling."
+]
+}
+],
+"education": [
+{
+"degree": "Bachelor of Technology in Computer Science and Engineering",
+"institution": "Sir Padampat Singhania University",
+"dates": "2025",
+"details": "CGPA: 7.0/10.0"
+}
+],
+"certifications": [
+"Certified Ethical Hacker (CEH v13)",
+"CompTIA Security+ (SY0-701)",
+"Cyber Security Expert – Simplilearn",
+"CISSP Assessment Completion"
+]
+}

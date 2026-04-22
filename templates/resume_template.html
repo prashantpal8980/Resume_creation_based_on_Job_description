@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ name }} — Resume</title>
+</head>
+<body>
+    <!-- ATS-Friendly Single Column Resume Template -->
+    <!-- No images, no icons, no complex layouts — pure text for maximum ATS compatibility -->
+
+    <div class="resume-header">
+        <h1>{{ name }}</h1>
+        <div class="contact-info">
+            {% if contact.email %}
+                <span>{{ contact.email }}</span>
+            {% endif %}
+            {% if contact.phone %}
+                <span class="separator">|</span>
+                <span>{{ contact.phone }}</span>
+            {% endif %}
+            {% if contact.linkedin %}
+                <span class="separator">|</span>
+                <span>{{ contact.linkedin }}</span>
+            {% endif %}
+            {% if contact.github %}
+                <span class="separator">|</span>
+                <span>{{ contact.github }}</span>
+            {% endif %}
+            {% if contact.location %}
+                <span class="separator">|</span>
+                <span>{{ contact.location }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Professional Summary -->
+    {% if summary %}
+    <div class="section">
+        <h2 class="section-title">Professional Summary</h2>
+        <p class="summary-text">{{ summary }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Technical Skills -->
+    {% if skills and skills|length > 0 %}
+    <div class="section">
+        <h2 class="section-title">Technical Skills</h2>
+        <div class="skills-list">
+            {{ skills | join(' · ') }}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Work Experience -->
+    {% if experience and experience|length > 0 %}
+    <div class="section">
+        <h2 class="section-title">Professional Experience</h2>
+        {% for exp in experience %}
+        <div class="entry">
+            <div class="entry-header-line">
+                <span class="entry-title">{{ exp.title }}</span>
+                {% if exp.company %}
+                    <span class="entry-company"> — {{ exp.company }}</span>
+                {% endif %}
+                {% if exp.dates %}
+                    <span class="entry-dates" style="float: right;">{{ exp.dates }}</span>
+                {% endif %}
+            </div>
+            {% if exp.bullets and exp.bullets|length > 0 %}
+            <ul class="bullets">
+                {% for bullet in exp.bullets %}
+                <li>{{ bullet }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Projects -->
+    {% if projects and projects|length > 0 %}
+    <div class="section">
+        <h2 class="section-title">Projects</h2>
+        {% for proj in projects %}
+        <div class="entry">
+            <div class="entry-header-line">
+                <span class="entry-title">{{ proj.name }}</span>
+                {% if proj.tech %}
+                    <span class="project-tech"> | {{ proj.tech }}</span>
+                {% endif %}
+            </div>
+            {% if proj.bullets and proj.bullets|length > 0 %}
+            <ul class="bullets">
+                {% for bullet in proj.bullets %}
+                <li>{{ bullet }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Education -->
+    {% if education and education|length > 0 %}
+    <div class="section">
+        <h2 class="section-title">Education</h2>
+        {% for edu in education %}
+        <div class="education-entry">
+            <div class="entry-header-line">
+                <span class="entry-title">{{ edu.degree }}</span>
+                {% if edu.dates %}
+                    <span class="entry-dates" style="float: right;">{{ edu.dates }}</span>
+                {% endif %}
+            </div>
+            {% if edu.institution %}
+                <div class="entry-company">{{ edu.institution }}</div>
+            {% endif %}
+            {% if edu.details %}
+                <div class="education-details">{{ edu.details }}</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Certifications -->
+    {% if certifications and certifications|length > 0 %}
+    <div class="section">
+        <h2 class="section-title">Certifications</h2>
+        <div class="certifications-list">
+            {{ certifications | join(' · ') }}
+        </div>
+    </div>
+    {% endif %}
+
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResumeForge — AI Resume Builder</title>
+    <meta name="description" content="AI-powered resume builder that tailors your resume to any job description using ChatGPT, Gemini, Claude, or Perplexity.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <!-- ─── Header ─── -->
+    <header class="app-header">
+        <div class="header-left">
+            <div class="logo">
+                <span class="logo-icon">◆</span>
+                <span class="logo-text">Resume<span class="logo-accent">Forge</span></span>
+            </div>
+            <span class="header-tagline">AI-Powered Resume Builder</span>
+        </div>
+        <div class="header-right">
+            <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme" title="Toggle dark/light mode">
+                <span class="theme-icon-sun">☀️</span>
+                <span class="theme-icon-moon">🌙</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ─── Main Content ─── -->
+    <main class="dashboard">
+
+        <!-- Left Panel: Inputs -->
+        <section class="panel input-panel">
+
+            <!-- Resume Upload -->
+            <div class="card" id="resumeCard">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="card-icon">📄</span> Resume Input
+                    </h2>
+                    <span class="card-badge" id="resumeStatus">No resume loaded</span>
+                </div>
+
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-content">
+                        <div class="upload-icon">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="12" y1="18" x2="12" y2="12"/>
+                                <polyline points="9 15 12 12 15 15"/>
+                            </svg>
+                        </div>
+                        <p class="upload-text">Drag & drop your resume PDF here</p>
+                        <p class="upload-subtext">or click to browse</p>
+                    </div>
+                    <input type="file" id="fileInput" accept=".pdf" hidden>
+                </div>
+
+                <div class="upload-actions">
+                    <button class="btn btn-secondary" id="loadDefaultBtn">
+                        <span>📁</span> Load Saved Resume
+                    </button>
+                    <button class="btn btn-ghost" id="clearResumeBtn" disabled>
+                        <span>✕</span> Clear
+                    </button>
+                </div>
+
+                <div class="resume-preview-text" id="resumePreviewText" hidden>
+                    <div class="preview-header">
+                        <span class="preview-filename" id="previewFilename"></span>
+                        <span class="preview-chars" id="previewChars"></span>
+                    </div>
+                    <div class="preview-content" id="previewContent"></div>
+                </div>
+            </div>
+
+            <!-- Job Description -->
+            <div class="card" id="jdCard">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="card-icon">📋</span> Job Description
+                    </h2>
+                    <span class="card-badge" id="jdCharCount">0 chars</span>
+                </div>
+                <textarea
+                    id="jobDescription"
+                    class="jd-textarea"
+                    placeholder="Paste the full job description here...&#10;&#10;Include the job title, responsibilities, requirements, and preferred qualifications for the best results."
+                    rows="10"
+                ></textarea>
+                <div class="jd-actions">
+                    <input type="text" id="jobTitleInput" class="job-title-input" placeholder="Job title (e.g., Software Engineer)">
+                    <button class="btn btn-ghost btn-small" id="clearJdBtn">Clear</button>
+                </div>
+            </div>
+
+            <!-- AI Model Selection -->
+            <div class="card" id="aiCard">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="card-icon">🤖</span> AI Model
+                    </h2>
+                </div>
+                <div class="model-grid" id="modelGrid">
+                    <button class="model-card active" data-platform="chatgpt" id="model-chatgpt">
+                        <div class="model-icon">💬</div>
+                        <div class="model-name">ChatGPT</div>
+                        <div class="model-sub">GPT-4o</div>
+                    </button>
+                    <button class="model-card" data-platform="gemini" id="model-gemini">
+                        <div class="model-icon">✨</div>
+                        <div class="model-name">Gemini</div>
+                        <div class="model-sub">Gemini Pro</div>
+                    </button>
+                    <button class="model-card" data-platform="claude" id="model-claude">
+                        <div class="model-icon">🧠</div>
+                        <div class="model-name">Claude</div>
+                        <div class="model-sub">Claude Sonnet</div>
+                    </button>
+                    <button class="model-card" data-platform="perplexity" id="model-perplexity">
+                        <div class="model-icon">🔍</div>
+                        <div class="model-name">Perplexity</div>
+                        <div class="model-sub">Multi-Model</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chrome Profile Selection -->
+            <div class="card" id="profileCard">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="card-icon">🌐</span> Chrome Profile
+                    </h2>
+                    <span class="card-badge" id="profileStatus">Loading...</span>
+                </div>
+                <select id="chromeProfileSelect" class="profile-select">
+                    <option value="Default">Default</option>
+                </select>
+                <p class="profile-hint">Select the Chrome profile where you're logged into AI platforms</p>
+            </div>
+
+            <button class="btn btn-primary btn-generate" id="generateBtn" disabled>
+                <span class="btn-icon">🚀</span>
+                <span class="btn-text">Generate Tailored Resume</span>
+                <span class="btn-loading" hidden>
+                    <span class="spinner"></span>
+                    Generating...
+                </span>
+            </button>
+
+            <!-- Progress Indicator -->
+            <div class="progress-section" id="progressSection" hidden>
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill" id="progressBar"></div>
+                </div>
+                <p class="progress-message" id="progressMessage">Starting...</p>
+            </div>
+
+        </section>
+
+        <!-- Right Panel: Preview & Output -->
+        <section class="panel output-panel">
+
+            <!-- Resume Preview -->
+            <div class="card preview-card" id="previewCard">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="card-icon">👁️</span> Resume Preview
+                    </h2>
+                    <div class="preview-actions" id="previewActions" hidden>
+                        <button class="btn btn-secondary btn-small" id="downloadBtn">
+                            <span>⬇️</span> Download PDF
+                        </button>
+                        <button class="btn btn-ghost btn-small" id="copyTextBtn">
+                            <span>📋</span> Copy Text
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div class="preview-empty" id="previewEmpty">
+                    <div class="empty-illustration">
+                        <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8" opacity="0.3">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                    </div>
+                    <p class="empty-title">No resume generated yet</p>
+                    <p class="empty-text">Upload your resume, paste a job description, select an AI model, and click Generate.</p>
+                </div>
+
+                <!-- PDF Preview Frame -->
+                <div class="preview-frame-container" id="previewFrameContainer" hidden>
+                    <iframe id="previewFrame" class="preview-frame" title="Resume Preview"></iframe>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div class="card history-card" id="historyCard">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="card-icon">📚</span> History
+                    </h2>
+                    <button class="btn btn-ghost btn-small" id="refreshHistoryBtn">Refresh</button>
+                </div>
+                <div class="history-list" id="historyList">
+                    <p class="history-empty">No resumes generated yet.</p>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Toast Notification -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
