@@ -1,12 +1,19 @@
 {
 "name": "Prashant Pal",
 "section_order": ["summary", "skills", "certifications", "experience", "projects", "education"],
-"summary": "Certified SOC Analyst (CEH v13, CompTIA Security+) with specialized experience in log monitoring, alert triage, and threat detection. Proven track record in identifying data exfiltration indicators and hardening infrastructure to reduce unauthorized access by 99%, with deep technical proficiency in Microsoft and Linux ecosystems.",
+"summary": "Certified cybersecurity professional with CEH v13, CISSP assessment, and CompTIA Security+ expertise in security operations and vulnerability management. Experienced in incident detection, threat analysis, and risk assessment, eager to support SecOps monitoring, triage, and GRC initiatives including audits and compliance documentation in a SaaS environment. Proven in ML-based attack detection and infrastructure hardening, ready to contribute to detection tuning, SOAR automation, and security awareness at Nasuni.",
 "skills": [
-{"category": "Security Operations", "items": "Log Analysis, Alert Triage, DLP (Data Loss Prevention), Insider Threat Monitoring, Incident Response, Microsoft Purview, Zscaler Reporting"},
-{"category": "Identity & Access", "items": "Microsoft Entra ID (Azure AD), IAM, MFA Implementation, Access Control Lists (ACLs), Geolocation Anomaly Investigation"},
-{"category": "Technical & Analytical", "items": "Python (Django), Bash Scripting, Advanced Excel (Pivot Tables, Data Filtering), Wireshark, Nmap, Vulnerability Management (Nessus)"},
-{"category": "Risk & Compliance", "items": "Third-Party Risk Assessment, Vendor Management, Risk Mitigation, Security Documentation, Technical Reporting"}
+{"category": "Security Operations", "items": "SIEM, EDR, Vulnerability Assessment (Nessus), Incident Response, Penetration Testing (Metasploit, Nmap, Hydra), Network Analysis (Wireshark), Phishing Analysis, Detection Tuning, SOAR Workflow Automation"},
+{"category": "Governance, Risk & Compliance", "items": "Risk Assessment, Audit Support (SOC 2, ISO 27001), Compliance Documentation, Risk Register, Third-Party Risk Reviews, Security Policies"},
+{"category": "Cloud & Identity", "items": "Cloud Security Architecture (OCI), Identity and Access Management (IAM), AWS, Azure"},
+{"category": "Tools & Automation", "items": "Kali Linux, Snort, AI-Driven Security Tools, Python (Django), Bash Scripting, Git/GitHub"},
+{"category": "Cryptography & Systems", "items": "Cryptography, Nginx, Gunicorn"}
+],
+"certifications": [
+{"name": "Certified Ethical Hacker (CEH v13)", "issuer": "EC-Council (ID: ECC9023145867)", "date": "February 2026"},
+{"name": "CompTIA Security+ (SY0-701)", "issuer": "Simplilearn", "date": "February 2026"},
+{"name": "Cyber Security Expert (Masters Program)", "issuer": "Simplilearn", "date": "March 2026"},
+{"name": "CISSP Assessment Completion", "issuer": "Simplilearn", "date": "March 2026"}
 ],
 "experience": [
 {
@@ -15,10 +22,9 @@
 "location": "Udaipur, Rajasthan, India",
 "dates": "April 2025 – November 2025",
 "bullets": [
-"Managed complex data workflows for global technology clients, maintaining a 99.5% accuracy rating in structured reports and Excel trackers.",
-"Optimized data collection and filtering processes using pivot tables and advanced analysis, reducing report turnaround time by 20%.",
-"Coordinated cross-functional communication to ensure all deliverables met strict internal security and quality standards.",
-"Maintained meticulous records of research findings and vendor-related data to support executive decision-making."
+"Managed secondary research for 5+ global technology clients, maintaining 99.5% data accuracy in deliverables supporting risk assessments and compliance documentation.",
+"Optimized data collection workflows for e-commerce projects, reducing report turnaround time by 20% through structured processes and analytical triage.",
+"Collaborated with cross-functional teams to deliver 5+ comprehensive market reports, ensuring alignment with client quality standards and accurate incident documentation."
 ]
 },
 {
@@ -27,60 +33,43 @@
 "location": "Patna, Bihar, India",
 "dates": "July 2024 – August 2024",
 "bullets": [
-"Developed an automated Attack Detection system to triage security events, achieving 80% accuracy in classifying DDoS and SQL injection patterns.",
-"Analyzed large-scale network traffic datasets to identify anomalies, decreasing processing latency by 15% through feature engineering.",
-"Monitored simulated logs for unusual patterns, mapping malicious activity to known threat indicators and exfiltration techniques."
+"Developed automated attack detection system using ML/DL for DDoS and SQL injection threats, achieving 80% accuracy in identifying potential security events.",
+"Processed and engineered features for large-scale traffic datasets, decreasing model training latency by 15% to support efficient threat triage and investigation."
 ]
 }
 ],
 "projects": [
 {
-"name": "Infrastructure Security Hardening",
+"name": "Secure Personal Portfolio Website | Live Site",
 "dates": "March 2026",
 "bullets": [
-"Architected secure network perimeters by implementing Access Control Lists (ACLs), successfully blocking 99% of unauthorized traffic.",
-"Conducted vulnerability scans and alert triage to identify and remediate 5 critical security flaws within an enterprise-simulated environment.",
-"Developed documentation for hardening processes to ensure consistent security posture across the infrastructure."
+"Architected and deployed dynamic portfolio on Oracle Cloud Infrastructure with Gunicorn and Nginx reverse proxy, enforcing cloud security architecture, SSL/TLS encryption, and server-level firewalls to mitigate vulnerabilities."
 ]
 },
 {
-"name": "Brute Force Attack Mitigation",
+"name": "Infrastructure Security Hardening | Simplilearn | Source Code",
+"dates": "March 2026",
+"bullets": [
+"Engineered secure network architecture with Access Control Lists (ACLs), blocking unauthorized traffic by 99% and patching 5 critical flaws identified via vulnerability scans in simulated enterprise environment.",
+"Supported risk assessments by documenting security controls and compliance artifacts for audit readiness."
+]
+},
+{
+"name": "Brute Force Attack Mitigation | Simplilearn | Source Code",
 "dates": "February 2026",
 "bullets": [
-"Investigated unusual sign-in patterns and brute-force attempts using Hydra, leading to the implementation of MFA protocols for identity security.",
-"Reduced successful unauthorized login attempts by 100% by enforcing account lockout policies and monitoring access irregularities.",
-"Simulated insider threat scenarios to test the resilience of credential management systems."
+"Simulated brute-force attacks using Hydra to triage credential threats, implementing MFA and account lockout policies to reduce unauthorized login attempts by 100%.",
+"Documented incident indicators and remediation actions for compliance tracking."
 ]
 },
 {
-"name": "Secure Personal Portfolio Website",
-"dates": "March 2026",
-"bullets": [
-"Deployed a secure reverse proxy using Nginx to monitor and filter incoming web traffic, mitigating common web-based vulnerabilities.",
-"Enforced SSL/TLS encryption and server-level firewalls to protect against data interception and unauthorized exfiltration.",
-"Optimized request routing and logging to improve visibility into potential security events and anomalies."
-]
-},
-{
-"name": "Memory Gallery: Secure Photo Journal",
+"name": "Memory Gallery: Secure Photo Journal | Source Code",
 "dates": "February 2025 – March 2025",
 "bullets": [
-"Engineered session-based access control and input validation to prevent 100% of tested XSS and SQLi vulnerabilities.",
-"Integrated secure Linux server configurations with Nginx, improving request handling efficiency by 30% while maintaining audit logs."
+"Built Django application with session-based IAM, preventing 100% of XSS and SQLi vulnerabilities through technical controls.",
+"Deployed on secure Linux server with Nginx, improving request handling by 30% while maintaining operational metrics."
 ]
 }
-],
-"certifications": [
-{"name": "Certified Ethical Hacker (CEH v13)", "issuer": "EC-Council (ID: ECC9023145867)", "date": "February 2026"},
-{"name": "CompTIA Security+ (SY0-701)", "issuer": "Simplilearn", "date": "February 2026"},
-{"name": "Cyber Security Expert (Masters Program)", "issuer": "Simplilearn", "date": "March 2026"},
-{"name": "CISSP Assessment Completion", "issuer": "Simplilearn", "date": "March 2026"}
-],
-"education": {
-"university": "Sir Padampat Singhania University",
-"location": "Udaipur, Rajasthan, India",
-"degree": "Bachelor of Technology in Computer Science and Engineering",
-"dates": "July 2025",
-"gpa": "7.0/10.0"
-}
-}
+] }
+careerservices.uic
++3

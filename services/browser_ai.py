@@ -45,18 +45,19 @@ PLATFORMS = {
     "claude": {
         "name": "Claude",
         "new_chat_url": "https://claude.ai/new",
-        "input_selector": 'div[contenteditable="true"].ProseMirror, div[contenteditable="true"][aria-label*="Message"], fieldset .ProseMirror',
-        "send_button_selector": 'button[aria-label="Send Message"], button[aria-label="Send message"]',
-        "response_selector": '.font-claude-message, [data-testid="chat-message-text"]',
-        "stop_selector": 'button[aria-label="Stop Response"], button[aria-label="Stop generating"]',
+        "input_selector": 'div.ProseMirror[contenteditable="true"], div[contenteditable="true"].ProseMirror, fieldset div[contenteditable="true"], div[contenteditable="true"][aria-placeholder*="Reply"], div[contenteditable="true"][aria-placeholder*="message"], div[contenteditable="true"][aria-placeholder*="Message"]',
+        "send_button_selector": 'button[aria-label="Send Message"], button[aria-label="Send message"], button[data-testid="send-message"], fieldset button[type="button"]:last-of-type',
+        "response_selector": '[data-testid="chat-message-text"], .font-claude-message, div[class*="claude"] .markdown, div[data-is-streaming], .response-text',
+        "stop_selector": 'button[aria-label="Stop Response"], button[aria-label="Stop generating"], button[aria-label="Stop"]',
+        "is_prosemirror": True,
     },
     "perplexity": {
         "name": "Perplexity",
         "new_chat_url": "https://www.perplexity.ai/",
-        "input_selector": 'textarea[placeholder*="Ask"], textarea[placeholder*="ask"], textarea',
-        "send_button_selector": 'button[aria-label="Submit"], button[aria-label="Send"], button.bg-super',
-        "response_selector": '.prose, .markdown-content, [class*="answer"]',
-        "stop_selector": 'button[aria-label="Stop"]',
+        "input_selector": 'textarea[placeholder*="Ask"], textarea[placeholder*="ask"], textarea[placeholder*="Type"], div[contenteditable="true"][role="textbox"], div[contenteditable="true"][aria-placeholder*="Ask"], div[contenteditable="true"][aria-placeholder*="Type"], textarea, div[contenteditable="true"]',
+        "send_button_selector": 'button[aria-label="Submit"], button[aria-label="Send"], button[aria-label="Ask"], button[type="submit"], button.bg-super',
+        "response_selector": '.prose, .markdown-content, [class*="answer"], [class*="Answer"], div[dir="auto"] .prose, .response-text',
+        "stop_selector": 'button[aria-label="Stop"], button[aria-label="Stop generating"]',
     },
 }
 
@@ -377,11 +378,17 @@ async def _human_delay(min_s: float = 0.3, max_s: float = 1.2):
     await asyncio.sleep(random.uniform(min_s, max_s))
 
 
-async def _paste_text_to_element(page: Page, selector: str, text: str):
+async def _paste_text_to_element(page: Page, selector: str, text: str, platform_key: str = ""):
     """
     Paste text into an element. Works for textarea and contenteditable divs.
     Uses multiple strategies with fallbacks.
+    
+    For ProseMirror editors (Claude), clipboard paste is the primary strategy
+    because setting innerText doesn't update ProseMirror's internal state.
     """
+    config = PLATFORMS.get(platform_key, {})
+    is_prosemirror = config.get("is_prosemirror", False)
+
     # Focus the element
     try:
         await page.click(selector, timeout=5000)
@@ -396,16 +403,68 @@ async def _paste_text_to_element(page: Page, selector: str, text: str):
     tag = await element.evaluate("el => el.tagName.toLowerCase()")
     is_ce = await element.evaluate("el => el.getAttribute('contenteditable') === 'true'")
 
+    print(f"[Input] Element: tag={tag}, contenteditable={is_ce}, prosemirror={is_prosemirror}")
+
     # Strategy 1: fill() for standard textarea/input
     if tag in ('textarea', 'input') and not is_ce:
         try:
             await element.fill(text)
+            print(f"[Input] Strategy 1 (fill) succeeded")
             return
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[Input] Strategy 1 (fill) failed: {e}")
 
-    # Strategy 2: Set innerText for contenteditable
+    # Strategy 2: Clipboard paste (PRIMARY for ProseMirror / contenteditable)
+    # This works because the browser's paste handler triggers ProseMirror's
+    # internal transaction, properly updating the editor state.
+    if is_ce or is_prosemirror:
+        try:
+            await element.click()
+            await _human_delay(0.2, 0.4)
+            # Select all existing content and delete it
+            await page.keyboard.press("Control+A")
+            await page.keyboard.press("Backspace")
+            await _human_delay(0.1, 0.3)
+            
+            # Use the clipboard API to paste
+            await page.evaluate("""async (text) => {
+                await navigator.clipboard.writeText(text);
+            }""", text)
+            await page.keyboard.press("Control+V")
+            await _human_delay(0.5, 1.0)
+            
+            # Verify text was pasted by checking element content
+            pasted_text = await element.inner_text()
+            if pasted_text and len(pasted_text.strip()) > 50:
+                print(f"[Input] Strategy 2 (clipboard paste) succeeded ({len(pasted_text)} chars)")
+                return
+            else:
+                print(f"[Input] Strategy 2 (clipboard paste) - text not detected, trying execCommand")
+        except Exception as e:
+            print(f"[Input] Strategy 2 (clipboard paste) failed: {e}")
+
+    # Strategy 3: execCommand insertText (backup for contenteditable)
     if is_ce:
+        try:
+            await element.click()
+            await page.keyboard.press("Control+A")
+            await page.keyboard.press("Backspace")
+            await element.evaluate("""(el, text) => {
+                el.focus();
+                document.execCommand('insertText', false, text);
+            }""", text)
+            await _human_delay(0.3, 0.5)
+            pasted_text = await element.inner_text()
+            if pasted_text and len(pasted_text.strip()) > 50:
+                print(f"[Input] Strategy 3 (execCommand) succeeded")
+                return
+            else:
+                print(f"[Input] Strategy 3 (execCommand) - text not verified")
+        except Exception as e:
+            print(f"[Input] Strategy 3 (execCommand) failed: {e}")
+
+    # Strategy 4: Set innerText + dispatch events (works for simple contenteditable)
+    if is_ce and not is_prosemirror:
         try:
             await element.evaluate("""(el, text) => {
                 el.focus();
@@ -413,20 +472,82 @@ async def _paste_text_to_element(page: Page, selector: str, text: str):
                 el.dispatchEvent(new Event('input', { bubbles: true }));
                 el.dispatchEvent(new Event('change', { bubbles: true }));
             }""", text)
+            print(f"[Input] Strategy 4 (innerText) succeeded")
             return
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[Input] Strategy 4 (innerText) failed: {e}")
 
-    # Strategy 3: Clipboard paste
+    # Strategy 5: Direct type (very slow for long text, last resort)
     try:
-        await page.evaluate("(text) => { navigator.clipboard.writeText(text); }", text)
         await element.click()
         await page.keyboard.press("Control+A")
-        await page.keyboard.press("Control+V")
-    except Exception:
-        # Strategy 4: Direct type (slow but reliable)
-        await element.click()
-        await element.type(text, delay=1)
+        await page.keyboard.press("Backspace")
+        # For very long prompts, type a truncated version warning
+        type_text = text if len(text) < 5000 else text[:5000]
+        await element.type(type_text, delay=1)
+        print(f"[Input] Strategy 5 (direct type) succeeded")
+    except Exception as e:
+        print(f"[Input] Strategy 5 (direct type) failed: {e}")
+        raise Exception(f"All input strategies failed for {selector}")
+
+
+async def _find_response_elements(page: Page, platform_key: str):
+    """
+    Try to find response elements using multiple strategies.
+    Returns a list of matching elements.
+    """
+    config = PLATFORMS[platform_key]
+    response_selector = config["response_selector"]
+    
+    # Try each selector individually first
+    selectors = [s.strip() for s in response_selector.split(",")]
+    for selector in selectors:
+        try:
+            elements = await page.query_selector_all(selector)
+            if elements and len(elements) > 0:
+                return elements
+        except Exception:
+            continue
+    
+    # Fallback: try broader selectors based on platform
+    fallback_selectors = {
+        "claude": [
+            'div[class*="message"] div[class*="markdown"]',
+            'div[class*="response"]',
+            'div[class*="assistant"]',
+            'div[data-is-streaming]',
+            # Claude often wraps responses in a grid layout
+            'div.grid div[class*="prose"]',
+            'div.grid div.markdown',
+        ],
+        "perplexity": [
+            'div.prose',
+            'div[class*="prose"]',
+            'div[class*="Answer"]', 
+            'div[class*="answer"]',
+            'div[class*="result"]',
+            'div[class*="markdown"]',
+            'div[dir="auto"] div.prose',
+        ],
+    }
+    
+    for selector in fallback_selectors.get(platform_key, []):
+        try:
+            elements = await page.query_selector_all(selector)
+            if elements and len(elements) > 0:
+                # Verify at least one has meaningful text
+                for el in elements:
+                    try:
+                        text = await el.inner_text()
+                        if text and len(text.strip()) > 20:
+                            print(f"[{config['name']}] Found response via fallback: {selector}")
+                            return elements
+                    except Exception:
+                        continue
+        except Exception:
+            continue
+    
+    return []
 
 
 async def _wait_for_response(page: Page, platform_key: str, timeout: int = 120) -> str:
@@ -435,7 +556,6 @@ async def _wait_for_response(page: Page, platform_key: str, timeout: int = 120) 
     Detects completion via stop-button disappearance + content stabilization.
     """
     config = PLATFORMS[platform_key]
-    response_selector = config["response_selector"]
     stop_selector = config.get("stop_selector", "")
 
     print(f"[{config['name']}] Waiting for response (timeout: {timeout}s)...")
@@ -443,37 +563,59 @@ async def _wait_for_response(page: Page, platform_key: str, timeout: int = 120) 
     start_time = time.time()
 
     # Phase 1: Wait for response element to appear
+    found_response = False
     while time.time() - start_time < timeout:
+        elements = await _find_response_elements(page, platform_key)
+        if elements:
+            found_response = True
+            break
+        await asyncio.sleep(1)
+        
+        # After 15s, log a diagnostic to help debug
+        elapsed = time.time() - start_time
+        if int(elapsed) % 15 == 0 and int(elapsed) > 0:
+            print(f"[{config['name']}] Still waiting for response element ({int(elapsed)}s)...")
+    
+    if not found_response:
+        # Take a screenshot for debugging
         try:
-            elements = await page.query_selector_all(response_selector)
-            if elements and len(elements) > 0:
-                break
+            screenshot_path = os.path.join(BASE_DIR, f"debug_response_{platform_key}.png")
+            await page.screenshot(path=screenshot_path)
+            print(f"[{config['name']}] Saved debug screenshot: {screenshot_path}")
         except Exception:
             pass
-        await asyncio.sleep(1)
-    else:
-        await asyncio.sleep(10)  # Extra wait if no element found
+        # Give it a final extra wait
+        await asyncio.sleep(10)
+        elements = await _find_response_elements(page, platform_key)
+        if not elements:
+            raise TimeoutError(f"No response element found on {config['name']} within {timeout}s")
 
     # Phase 2: Wait for content to stabilize
     print(f"[{config['name']}] Response started, waiting for completion...")
     stable_count = 0
     last_text = ""
+    stop_selectors = [s.strip() for s in stop_selector.split(",")] if stop_selector else []
 
     while time.time() - start_time < timeout:
         # Check if still generating (stop button visible)
-        if stop_selector:
+        is_generating = False
+        for sel in stop_selectors:
             try:
-                stop_btn = await page.query_selector(stop_selector)
+                stop_btn = await page.query_selector(sel)
                 if stop_btn and await stop_btn.is_visible():
-                    stable_count = 0
-                    await asyncio.sleep(2)
-                    continue
+                    is_generating = True
+                    break
             except Exception:
-                pass
+                continue
+        
+        if is_generating:
+            stable_count = 0
+            await asyncio.sleep(2)
+            continue
 
-        # Get current text
+        # Get current text from ALL matching response elements
         try:
-            elements = await page.query_selector_all(response_selector)
+            elements = await _find_response_elements(page, platform_key)
             if elements:
                 last_el = elements[-1]
                 current_text = await last_el.inner_text()
@@ -486,8 +628,12 @@ async def _wait_for_response(page: Page, platform_key: str, timeout: int = 120) 
                 else:
                     stable_count = 0
                     last_text = current_text
-        except Exception:
-            pass
+                    if current_text:
+                        elapsed = int(time.time() - start_time)
+                        if elapsed % 20 == 0:
+                            print(f"[{config['name']}] Response growing... ({len(current_text)} chars at {elapsed}s)")
+        except Exception as e:
+            print(f"[{config['name']}] Error reading response: {e}")
 
         await asyncio.sleep(2)
 
@@ -564,7 +710,7 @@ async def send_prompt_to_ai(
                 try:
                     await page.wait_for_selector(selector, timeout=8000)
                     progress("Found input field. Pasting prompt...")
-                    await _paste_text_to_element(page, selector, prompt)
+                    await _paste_text_to_element(page, selector, prompt, platform_key)
                     input_found = True
                     break
                 except Exception:
