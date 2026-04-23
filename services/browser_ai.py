@@ -185,19 +185,35 @@ def is_debug_port_ready(port: int) -> bool:
 
 
 def kill_chrome_processes():
-    """Kill all running Chrome processes to free the profile lock."""
+    """
+    Kill Chrome processes that use the debug profile directory.
+    Does NOT kill the user's regular Chrome — only the debug instance.
+    """
     try:
+        # Use WMIC to find Chrome processes with our debug profile in the command line
         result = subprocess.run(
-            ["taskkill", "/F", "/IM", "chrome.exe", "/T"],
+            ["wmic", "process", "where",
+             f"name='chrome.exe' and commandline like '%{DEBUG_PROFILE_DIR.replace(os.sep, os.sep + os.sep)}%'",
+             "get", "processid"],
             capture_output=True, text=True, timeout=10
         )
-        if result.returncode == 0:
-            print("[Chrome] Killed existing Chrome processes.")
+        pids = re.findall(r'\d+', result.stdout)
+        
+        if pids:
+            for pid in pids:
+                try:
+                    subprocess.run(["taskkill", "/F", "/PID", pid], 
+                                   capture_output=True, timeout=5)
+                except Exception:
+                    pass
+            print(f"[Chrome] Killed {len(pids)} debug Chrome processes.")
             time.sleep(2)
         else:
-            print("[Chrome] No Chrome processes to kill.")
+            print("[Chrome] No debug Chrome processes to kill.")
     except Exception as e:
-        print(f"[Chrome] Warning: Could not kill Chrome: {e}")
+        # Fallback: if WMIC fails, try to kill only by the debug port
+        print(f"[Chrome] Warning: Targeted kill failed ({e}), skipping.")
+
 
 
 def launch_chrome_debug(user_data_dir: str, profile: str, debug_port: int) -> Optional[subprocess.Popen]:
@@ -294,59 +310,55 @@ def build_prompt(resume_text: str, job_description: str) -> str:
     return f"""You are an expert ATS resume writer. I will provide my current resume and a job description.
 
 Your task:
-- Rewrite my resume to align with the job description
-- Keep all information truthful — do not fabricate any experience or skills
+- Rewrite my resume content to align with the job description
+- Keep all information truthful — do NOT fabricate any experience, skills, certifications, or dates
 - Add relevant ATS keywords naturally from the job description
-- Improve grammar, impact, and readability
+- Improve bullet points with strong action verbs, metrics, and impact
 - Make it concise and professional — must fit on one page
-- Use strong action verbs and clean bullet points
-- Focus on skills/projects most relevant to the role
-- Write a compelling professional summary
-- Optimize section ordering for maximum impact
+- Write a compelling professional summary tailored to the role
+- Suggest the best section ordering for this specific job
+
+RULES — DO NOT CHANGE:
+- Keep all company names, job titles, dates, locations, university, and certification IDs exactly as they are
+- Keep all project names exactly as they are (do not rename projects)
+- Keep the same number of experience entries and project entries
+- Only update: summary text, skill categories/items, bullet point text, and certification ordering
 
 CRITICAL: Return your response as a JSON object with this EXACT structure, and NOTHING else (no markdown fences, no explanation, just raw JSON):
 
 {{
-  "name": "Full Name",
-  "contact": {{
-    "email": "email@example.com",
-    "phone": "+1-XXX-XXX-XXXX",
-    "linkedin": "linkedin.com/in/username",
-    "github": "github.com/username",
-    "location": "City, State"
-  }},
-  "summary": "2-3 sentence professional summary tailored to the job",
-  "skills": ["Skill 1", "Skill 2", "Skill 3"],
+  "name": "Prashant Pal",
+  "section_order": ["summary", "skills", "certifications", "experience", "projects", "education"],
+  "summary": "2-3 sentence professional summary tailored to this specific job",
+  "skills": [
+    {{"category": "Category Name", "items": "Skill1, Skill2, Skill3 (comma-separated string)"}},
+    {{"category": "Another Category", "items": "Tool1, Tool2, Tool3"}}
+  ],
   "experience": [
     {{
-      "title": "Job Title",
-      "company": "Company Name",
-      "dates": "Start Date - End Date",
+      "company": "Company Name (keep original)",
+      "title": "Job Title (keep original)",
+      "location": "City, State, Country (keep original)",
+      "dates": "Start -- End (keep original)",
       "bullets": [
-        "Achievement with metrics and action verbs...",
-        "Another achievement..."
+        "Improved bullet with ATS keywords and metrics...",
+        "Another achievement aligned to the job description..."
       ]
     }}
   ],
   "projects": [
     {{
-      "name": "Project Name",
-      "tech": "Technologies used",
+      "name": "Project Name (keep original, exactly as-is)",
+      "dates": "Month Year (keep original)",
       "bullets": [
-        "What you built and impact...",
-        "Technical details..."
+        "Updated bullet highlighting relevant skills...",
+        "Technical details aligned to job requirements..."
       ]
     }}
   ],
-  "education": [
-    {{
-      "degree": "Degree Name",
-      "institution": "University Name",
-      "dates": "Graduation Year",
-      "details": "GPA, honors, relevant coursework"
-    }}
-  ],
-  "certifications": ["Certification 1", "Certification 2"]
+  "certifications": [
+    {{"name": "Certification Name", "issuer": "Issuing Body (ID if any)", "date": "Month Year"}}
+  ]
 }}
 
 === MY CURRENT RESUME ===

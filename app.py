@@ -306,6 +306,8 @@ def generate_resume_stream():
                 messages.put({"type": "complete", "data": result_holder["result"]})
                 
             except Exception as e:
+                import traceback
+                traceback.print_exc()
                 result_holder["error"] = str(e)
                 messages.put({"type": "error", "message": str(e)})
         

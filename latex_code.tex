@@ -1,0 +1,116 @@
+\documentclass[10pt,a4paper,sans]{article}
+\usepackage[utf8]{inputenc}
+% ADJUSTED: Reduced top and bottom margins slightly to gain more vertical real estate
+\usepackage[top=0.35in, bottom=0.35in, left=0.5in, right=0.5in]{geometry}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{fontawesome5}
+\hypersetup{
+    colorlinks=true,
+    urlcolor=black
+}
+
+% High-ATS Formatting
+\titleformat{\section}{\large\bfseries}{}{0em}{}[\titlerule]
+% ADJUSTED: Reduced the spacing before and after section lines to save space
+\titlespacing{\section}{0pt}{4pt}{2pt}
+
+% ADJUSTED: Removed topsep for lists
+\setlist[itemize]{noitemsep, topsep=0pt, leftmargin=30pt}
+
+\begin{document}
+
+% --- CONTACT INFO ---
+\begin{center}
+    {\huge \textbf{Prashant Pal}} \\
+    \vspace{2pt} % Reduced from 4pt
+    +91-8839436332 $|$ \href{mailto:palprashant8980@gmail.com}{palprashant8980@gmail.com} \\
+    \href{https://github.com/prashantpal8980}{github.com/prashantpal8980} $|$ \href{https://www.linkedin.com/in/prashantpal0405}{linkedin.com/in/prashantpal0405} \\
+    Shamgarh, Madhya Pradesh 458883, India
+\end{center}
+
+% --- CEH BADGE ---
+ \begin{flushright} \vspace{-65pt} \includegraphics[width=1.6cm]{ceh_v13_badge.png} \end{flushright}
+
+% --- SUMMARY ---
+\section{Professional Summary}
+\noindent Certified \textbf{Cyber Security Expert} and B.Tech graduate with elite credentials including \textbf{CEH v13 (AI-Augmented)}, \textbf{CISSP}, and \textbf{CompTIA Security+}. Expert in vulnerability management, penetration testing, and infrastructure hardening. Proven track record in applying Machine Learning for threat detection, implementing technical controls to mitigate advanced attacks, and securing cloud deployments.
+
+% --- SKILLS ---
+\section{Technical Skills}
+\begin{itemize}
+    \item \textbf{Security Operations:} Vulnerability Assessment (Nessus), Network Analysis (Wireshark), Penetration Testing (Metasploit, Nmap, Hydra), MSFvenom.
+    \item \textbf{Security Management \& Cloud:} Incident Response, Risk Assessment, Identity and Access Management (IAM), Cloud Security Architecture, Cryptography.
+    \item \textbf{Cybersecurity Tools:} Kali Linux, Snort, John the Ripper, Aircrack-ng, AI-Hacking Tools.
+    \item \textbf{Development \& Systems:} Python (Django), Java, Bash Scripting, SQL, Oracle Cloud (OCI), Nginx, Gunicorn, Git/GitHub.
+\end{itemize}
+
+% --- CERTIFICATIONS ---
+\section{Certifications}
+\begin{itemize}
+    \item \textbf{Certified Ethical Hacker (CEH v13)} -- EC-Council (ID: ECC9023145867) \hfill February 2026
+    \item \textbf{Cyber Security Expert (Masters Program)} -- Simplilearn \hfill March 2026
+    \item \textbf{CompTIA Security+ (SY0-701)} -- Simplilearn \hfill February 2026
+    \item \textbf{CISSP Assessment Completion} -- Simplilearn \hfill March 2026
+\end{itemize}
+
+% --- EXPERIENCE ---
+\section{Professional Experience}
+\noindent \textbf{Arcgate Technologies} $|$ {Research Analyst} \hfill \textbf{Udaipur, Rajasthan, India} \\
+{April 2025 -- November 2025}
+\begin{itemize}
+    \item Managed secondary research for \textbf{5+ global technology clients}, maintaining a \textbf{99.5\% data accuracy rating} across all deliverables.
+    \item Optimized data collection workflows for e-commerce projects, resulting in a \textbf{20\% reduction} in report turnaround time.
+    \item Collaborated with cross-functional teams to deliver \textbf{5+ comprehensive market reports} aligned with strict client quality standards.
+\end{itemize}
+
+\noindent \textbf{Indian Institute of Technology (IIT)} $|$ {Cybersecurity Research Intern} \hfill \textbf{Patna, Bihar, India} \\
+{July 2024 -- August 2024}
+\begin{itemize}
+    \item Developed an automated Attack Detection system using \textbf{ML/DL}, achieving \textbf{80\% accuracy} in identifying real-world DDoS and SQL injection patterns.
+    \item Processed and engineered features for large-scale traffic datasets, decreasing model training latency by \textbf{15\%}.
+\end{itemize}
+
+% --- PROJECTS ---
+
+\section{Projects}
+
+\noindent \textbf{Secure Personal Portfolio Website} $|$ 
+\href{https://prashantpal.online}{\faLink\ \textbf{Live Site}}
+\hfill March 2026
+\begin{itemize}
+    \item Architected and deployed a dynamic portfolio application on \textbf{Oracle Cloud Infrastructure}, utilizing \textbf{Gunicorn} as the application server and \textbf{Nginx} as a secure reverse proxy.
+    \item Enforced security best practices by configuring server-level firewalls, SSL/TLS encryption, and optimized request routing to mitigate common web vulnerabilities.
+\end{itemize}
+
+\noindent \textbf{Infrastructure Security Hardening} $|$ {Simplilearn} $|$
+\href{https://github.com/prashantpal8980/Enterprise-Infrastructure-Security-Hardening.git}{\faGithub\ \textbf{Source Code}}
+\hfill March 2026
+\begin{itemize}
+    \item Engineered a secure network architecture by implementing \textbf{Access Control Lists (ACLs)} to block unauthorized traffic by \textbf{99\%}.
+    \item Performed vulnerability scans to identify and patch \textbf{5 critical security flaws} within a simulated enterprise environment.
+\end{itemize}
+
+\noindent \textbf{Brute Force Attack Mitigation} $|$ {Simplilearn} $|$
+\href{https://github.com/prashantpal8980/Brute-Force-Attack-Detection-and-Mitigation.git}{\faGithub\ \textbf{Source Code}}
+\hfill February 2026
+\begin{itemize}
+    \item Simulated brute-force attacks using \textbf{Hydra} to test credential strength, leading to the implementation of MFA protocols.
+    \item Reduced successful unauthorized login attempts by \textbf{100\%} through the enforcement of account lockout policies.
+\end{itemize}
+
+\noindent \textbf{Memory Gallery: Secure Photo Journal} $|$
+\href{https://github.com/prashantpal8980/MemoryGallery.git}{\faGithub\ \textbf{Source Code}} \hfill February 2025 -- March 2025
+\begin{itemize}
+    \item Built a Django application with \textbf{session-based access control}, successfully preventing 100\% of tested XSS and SQLi vulnerabilities.
+    \item Deployed on a secure Linux server using \textbf{Nginx}, improving request handling efficiency by \textbf{30\%}.
+\end{itemize}
+
+% --- EDUCATION ---
+\section{Education}
+\noindent \textbf{Sir Padampat Singhania University} \hfill \textbf{Udaipur, Rajasthan, India} \\
+Bachelor of Technology in Computer Science and Engineering $|$ \textbf{CGPA: 7.3/10.0} \hfill July 2025
+
+\end{document}

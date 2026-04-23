@@ -357,13 +357,12 @@ def parse_ai_response(response_text: str) -> Dict[str, Any]:
         if all(key in result for key in required_keys):
             defaults = {
                 "name": "",
-                "contact": {"email": "", "phone": "", "linkedin": "", "github": "", "location": ""},
                 "summary": "",
                 "skills": [],
                 "experience": [],
                 "projects": [],
-                "education": [],
-                "certifications": []
+                "certifications": [],
+                "section_order": ["summary", "skills", "certifications", "experience", "projects", "education"],
             }
             for key, default_val in defaults.items():
                 if key not in result:
@@ -394,22 +393,48 @@ def validate_resume_data(data: Dict[str, Any]) -> Dict[str, Any]:
     if not data.get("experience") or len(data["experience"]) == 0:
         issues.append("Experience section is empty")
     
+    # Handle skills — can be list of {category, items} dicts or flat list of strings
     if data.get("skills"):
-        data["skills"] = list(dict.fromkeys([s.strip() for s in data["skills"] if s.strip()]))
+        skills = data["skills"]
+        if skills and isinstance(skills[0], str):
+            # Convert flat list to single-category format
+            data["skills"] = [{"category": "Technical Skills", "items": ", ".join(skills)}]
     
+    # Handle certifications — can be list of {name, issuer, date} dicts or flat list
+    if data.get("certifications"):
+        certs = data["certifications"]
+        if certs and isinstance(certs[0], str):
+            # Convert flat strings to structured format
+            data["certifications"] = [{"name": c, "issuer": "", "date": ""} for c in certs]
+    
+    # Ensure experience entries have all fields
     for exp in data.get("experience", []):
         exp.setdefault("title", "")
         exp.setdefault("company", "")
+        exp.setdefault("location", "")
         exp.setdefault("dates", "")
         exp.setdefault("bullets", [])
     
+    # Ensure project entries have all fields
     for proj in data.get("projects", []):
         proj.setdefault("name", "")
-        proj.setdefault("tech", "")
+        proj.setdefault("dates", "")
         proj.setdefault("bullets", [])
+    
+    # Validate section_order
+    valid_sections = {"summary", "skills", "certifications", "experience", "projects", "education"}
+    if data.get("section_order"):
+        data["section_order"] = [s for s in data["section_order"] if s in valid_sections]
+        # Ensure all sections are present
+        for section in valid_sections:
+            if section not in data["section_order"]:
+                data["section_order"].append(section)
+    else:
+        data["section_order"] = ["summary", "skills", "certifications", "experience", "projects", "education"]
     
     if issues:
         print(f"[Parser] Validation issues: {', '.join(issues)}")
     
     data["_validation_issues"] = issues
     return data
+

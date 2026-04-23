@@ -1,20 +1,66 @@
 """
-PDF Generator Service
-Generates ATS-friendly, single-page resume PDFs using fpdf2.
-Pure Python — no system dependencies needed (unlike WeasyPrint).
+PDF Generator Service — LaTeX-Based
+Generates ATS-friendly, single-page resume PDFs by filling content into
+the existing latex_code.tex template and compiling with pdflatex.
+
+Only content sections are updated — the LaTeX structure, formatting,
+links, badge, and icons remain untouched.
 """
 
 import os
 import json
+import re
+import subprocess
+import shutil
+import tempfile
 from datetime import datetime
-from typing import Dict, Any, List
-from fpdf import FPDF
+from typing import Dict, Any, List, Optional
 
 
 # Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GENERATED_DIR = os.path.join(BASE_DIR, "generated")
 HISTORY_DIR = os.path.join(BASE_DIR, "history")
+TEMPLATE_TEX = os.path.join(BASE_DIR, "latex_code.tex")
+BADGE_IMAGE = os.path.join(BASE_DIR, "ceh_v13_badge.png")
+
+# MiKTeX path (auto-detected)
+PDFLATEX_PATH = None
+
+
+def _find_pdflatex() -> str:
+    """Find pdflatex executable."""
+    global PDFLATEX_PATH
+    if PDFLATEX_PATH:
+        return PDFLATEX_PATH
+
+    # Check PATH first
+    try:
+        result = subprocess.run(
+            ["pdflatex", "--version"],
+            capture_output=True, text=True, timeout=10
+        )
+        if result.returncode == 0:
+            PDFLATEX_PATH = "pdflatex"
+            return PDFLATEX_PATH
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    # Check common MiKTeX locations on Windows
+    candidates = [
+        r"C:\Program Files\MiKTeX\miktex\bin\x64\pdflatex.exe",
+        r"C:\Program Files (x86)\MiKTeX\miktex\bin\x64\pdflatex.exe",
+        os.path.expandvars(r"%LOCALAPPDATA%\Programs\MiKTeX\miktex\bin\x64\pdflatex.exe"),
+        os.path.expandvars(r"%APPDATA%\MiKTeX\miktex\bin\x64\pdflatex.exe"),
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            PDFLATEX_PATH = path
+            return PDFLATEX_PATH
+
+    raise FileNotFoundError(
+        "pdflatex not found. Please install MiKTeX from https://miktex.org/download"
+    )
 
 
 def ensure_dirs():
@@ -23,82 +69,339 @@ def ensure_dirs():
     os.makedirs(HISTORY_DIR, exist_ok=True)
 
 
-def _sanitize(text: str) -> str:
-    """Replace characters unsupported by latin-1 core fonts with safe ASCII alternatives."""
+# ─────────────────────────────────────────────
+# LaTeX Escaping
+# ─────────────────────────────────────────────
+
+def _escape_latex(text: str) -> str:
+    """
+    Escape special LaTeX characters in plain text.
+    Does NOT process text that already contains LaTeX commands.
+    """
     if not text:
-        return text
-    replacements = {
-        '\u2022': '-',   # bullet •
-        '\u2013': '-',   # en-dash –
-        '\u2014': '-',   # em-dash —
-        '\u2018': "'",   # left single quote '
-        '\u2019': "'",   # right single quote '
-        '\u201c': '"',   # left double quote "
-        '\u201d': '"',   # right double quote "
-        '\u2026': '...', # ellipsis …
-        '\u00a0': ' ',   # non-breaking space
-        '\u2010': '-',   # hyphen ‐
-        '\u2011': '-',   # non-breaking hyphen ‑
-        '\u2012': '-',   # figure dash ‒
-        '\u00b7': '-',   # middle dot ·
-        '\u25cf': '-',   # black circle ●
-        '\u25cb': '-',   # white circle ○
-        '\u25aa': '-',   # black square ▪
-        '\u00e9': 'e',   # é
-        '&': 'and',
-    }
-    for char, replacement in replacements.items():
+        return ""
+    # Order matters: backslash first, then others
+    replacements = [
+        ('\\', r'\textbackslash{}'),
+        ('&', r'\&'),
+        ('%', r'\%'),
+        ('$', r'\$'),
+        ('#', r'\#'),
+        ('_', r'\_'),
+        ('{', r'\{'),
+        ('}', r'\}'),
+        ('~', r'\textasciitilde{}'),
+        ('^', r'\textasciicircum{}'),
+    ]
+    for char, replacement in replacements:
         text = text.replace(char, replacement)
-    # Final pass: strip any remaining non-latin-1 characters
-    try:
-        text.encode('latin-1')
-    except UnicodeEncodeError:
-        text = text.encode('latin-1', errors='replace').decode('latin-1')
     return text
 
 
-class ResumePDF(FPDF):
-    """Custom FPDF class for ATS-friendly resume generation."""
+def _smart_escape(text: str) -> str:
+    """
+    Escape text for LaTeX but preserve intentional LaTeX formatting
+    that the AI might include (like \\textbf{}).
+    
+    Strategy: escape only the dangerous chars that aren't part of commands.
+    Since we control the template, we just escape the content text.
+    """
+    if not text:
+        return ""
+    # Escape & and % which are the most common problematic chars in resume content
+    # Don't escape backslash, braces — the AI shouldn't produce those
+    text = text.replace('&', r'\&')
+    text = text.replace('%', r'\%')
+    text = text.replace('#', r'\#')
+    text = text.replace('$', r'\$')
+    # Don't escape _ — it's used in URLs and technical terms but those are in \href
+    # Handle standalone underscores not in URLs
+    return text
 
-    def __init__(self):
-        super().__init__(format='A4')
-        self.set_auto_page_break(auto=False)
-        # Colors
-        self.COLOR_PRIMARY = (30, 58, 95)      # Dark navy
-        self.COLOR_TEXT = (33, 33, 33)          # Near black
-        self.COLOR_SECONDARY = (80, 80, 80)    # Dark gray
-        self.COLOR_MUTED = (110, 110, 110)     # Medium gray
-        self.COLOR_LINE = (180, 190, 200)      # Light blue-gray
 
-    def _section_title(self, title: str):
-        """Render a section heading with underline."""
-        self.set_font("Helvetica", "B", 11)
-        self.set_text_color(*self.COLOR_PRIMARY)
-        self.cell(0, 6, title.upper(), new_x="LMARGIN", new_y="NEXT")
-        # Draw line under title
-        y = self.get_y()
-        self.set_draw_color(*self.COLOR_LINE)
-        self.set_line_width(0.3)
-        self.line(self.l_margin, y, self.w - self.r_margin, y)
-        self.ln(2.5)
+def _bold_keywords(text: str) -> str:
+    """
+    Add \\textbf{} around key metrics and percentages in bullet text
+    to match the original resume style.
+    
+    Matches patterns like: 99.5%, 5+, 80% accuracy, 20% reduction, etc.
+    """
+    # Bold percentages with context (e.g., "99.5% data accuracy")
+    text = re.sub(
+        r'(\d+\.?\d*\%)',
+        r'\\textbf{\1}',
+        text
+    )
+    # Bold "N+" patterns (e.g., "5+ global technology clients")
+    text = re.sub(
+        r'(\d+\+)',
+        r'\\textbf{\1}',
+        text
+    )
+    return text
 
-    def _bullet_point(self, text: str, indent: float = 14):
-        """Render a bullet point with proper wrapping."""
-        self.set_font("Helvetica", "", 9.5)
-        self.set_text_color(*self.COLOR_TEXT)
-        x = self.get_x()
-        # Bullet character (use ASCII hyphen for latin-1 compatibility)
-        self.set_x(indent)
-        self.cell(4, 4.5, "-", new_x="END")
-        # Text with wrapping
-        available_width = self.w - self.r_margin - indent - 4
-        self.multi_cell(available_width, 4.5, _sanitize(text), new_x="LMARGIN", new_y="NEXT")
-        self.ln(0.5)
 
-    def _check_space(self, needed: float) -> bool:
-        """Check if there's enough space on the current page."""
-        return (self.get_y() + needed) < (self.h - self.b_margin - 5)
+# ─────────────────────────────────────────────
+# Section Builders
+# ─────────────────────────────────────────────
 
+def _build_summary(summary: str) -> str:
+    """Build the Professional Summary section."""
+    escaped = _smart_escape(summary)
+    return (
+        "% --- SUMMARY ---\n"
+        "\\section{Professional Summary}\n"
+        f"\\noindent {escaped}\n"
+    )
+
+
+def _build_skills(skills: list) -> str:
+    """
+    Build the Technical Skills section.
+    
+    Accepts either:
+    - List of {category, items} dicts (preferred)
+    - Flat list of strings (backward compat — will be grouped as single category)
+    """
+    lines = [
+        "% --- SKILLS ---\n"
+        "\\section{Technical Skills}\n"
+        "\\begin{itemize}"
+    ]
+
+    if not skills:
+        lines.append("    \\item No skills listed.")
+    elif isinstance(skills[0], dict) and "category" in skills[0]:
+        # Categorized format
+        for skill in skills:
+            category = _smart_escape(skill.get("category", ""))
+            items = _smart_escape(skill.get("items", ""))
+            lines.append(f"    \\item \\textbf{{{category}:}} {items}")
+    else:
+        # Flat list — group as single line
+        escaped = [_smart_escape(s) for s in skills]
+        lines.append(f"    \\item {', '.join(escaped)}")
+
+    lines.append("\\end{itemize}")
+    return "\n".join(lines) + "\n"
+
+
+def _build_certifications(certifications: list) -> str:
+    """
+    Build the Certifications section.
+    
+    Accepts either:
+    - List of {name, issuer, date} dicts (preferred)
+    - Flat list of strings (backward compat)
+    """
+    lines = [
+        "% --- CERTIFICATIONS ---\n"
+        "\\section{Certifications}\n"
+        "\\begin{itemize}"
+    ]
+
+    if not certifications:
+        lines.append("    \\item No certifications listed.")
+    elif isinstance(certifications[0], dict) and "name" in certifications[0]:
+        for cert in certifications:
+            name = _smart_escape(cert.get("name", ""))
+            issuer = _smart_escape(cert.get("issuer", ""))
+            date = cert.get("date", "")
+            issuer_part = f" -- {issuer}" if issuer else ""
+            date_part = f" \\hfill {date}" if date else ""
+            lines.append(f"    \\item \\textbf{{{name}}}{issuer_part}{date_part}")
+    else:
+        # Flat string list
+        for cert in certifications:
+            lines.append(f"    \\item {_smart_escape(str(cert))}")
+
+    lines.append("\\end{itemize}")
+    return "\n".join(lines) + "\n"
+
+
+def _build_experience(experience: list) -> str:
+    """Build the Professional Experience section with company/title/location/dates + bullets."""
+    lines = [
+        "% --- EXPERIENCE ---\n"
+        "\\section{Professional Experience}"
+    ]
+
+    for exp in experience:
+        company = _smart_escape(exp.get("company", ""))
+        title = _smart_escape(exp.get("title", ""))
+        location = _smart_escape(exp.get("location", ""))
+        dates = exp.get("dates", "")
+        bullets = exp.get("bullets", [])
+
+        # Header line: Company | Title \hfill Location
+        location_part = f" \\hfill \\textbf{{{location}}}" if location else ""
+        lines.append(f"\\noindent \\textbf{{{company}}} $|$ {{{title}}}{location_part} \\\\")
+        lines.append(f"{{{dates}}}")
+        
+        if bullets:
+            lines.append("\\begin{itemize}")
+            for bullet in bullets:
+                escaped = _smart_escape(bullet)
+                escaped = _bold_keywords(escaped)
+                lines.append(f"    \\item {escaped}")
+            lines.append("\\end{itemize}")
+        lines.append("")
+
+    return "\n".join(lines) + "\n"
+
+
+def _build_projects(projects: list, original_projects: list) -> str:
+    """
+    Build the Projects section.
+    
+    Preserves the original link_text (href with FontAwesome icons) from
+    the template, but updates bullet content from the AI.
+    
+    original_projects: parsed from the original .tex to preserve links.
+    """
+    lines = [
+        "% --- PROJECTS ---\n\n"
+        "\\section{Projects}\n"
+    ]
+
+    # Build a lookup of original project links by project name
+    orig_links = {}
+    for proj in original_projects:
+        orig_links[proj["name"].lower().strip()] = proj.get("link_line", "")
+
+    for proj in projects:
+        name = proj.get("name", "")
+        dates = proj.get("dates", "")
+        bullets = proj.get("bullets", [])
+        
+        # Try to find the original link for this project
+        link_line = orig_links.get(name.lower().strip(), "")
+        
+        # Build project header
+        name_escaped = _smart_escape(name)
+        if link_line:
+            lines.append(f"\\noindent \\textbf{{{name_escaped}}} $|$ ")
+            lines.append(f"{link_line}")
+        else:
+            lines.append(f"\\noindent \\textbf{{{name_escaped}}}")
+        
+        if dates:
+            lines.append(f"\\hfill {dates}")
+        
+        if bullets:
+            lines.append("\\begin{itemize}")
+            for bullet in bullets:
+                escaped = _smart_escape(bullet)
+                escaped = _bold_keywords(escaped)
+                lines.append(f"    \\item {escaped}")
+            lines.append("\\end{itemize}")
+        lines.append("")
+
+    return "\n".join(lines) + "\n"
+
+
+# ─────────────────────────────────────────────
+# Template Parsing
+# ─────────────────────────────────────────────
+
+def _parse_original_projects(tex_content: str) -> list:
+    """
+    Parse the original .tex file to extract project names and their
+    link lines (\\href{...}{\\faIcon ...}) so we can preserve them.
+    """
+    projects = []
+    
+    # Split into project blocks — each starts with \noindent \textbf{
+    project_pattern = re.compile(
+        r'\\noindent\s+\\textbf\{([^}]+)\}\s*\$\|\$\s*\n?(.*?)(?=\\begin\{itemize\})',
+        re.DOTALL
+    )
+    
+    # Find the projects section
+    proj_section_match = re.search(
+        r'% --- PROJECTS ---.*?(?=% --- EDUCATION ---|\\end\{document\})',
+        tex_content, re.DOTALL
+    )
+    
+    if not proj_section_match:
+        return projects
+    
+    proj_text = proj_section_match.group()
+    
+    # Parse each project block
+    blocks = re.split(r'(?=\\noindent\s+\\textbf\{)', proj_text)
+    
+    for block in blocks:
+        if not block.strip() or '\\textbf{' not in block:
+            continue
+        
+        # Extract project name
+        name_match = re.search(r'\\textbf\{([^}]+)\}', block)
+        if not name_match:
+            continue
+        name = name_match.group(1)
+        
+        # Extract the full link part (everything between $|$ and \hfill or \begin{itemize})
+        # This captures \href{...}{...} lines with FontAwesome icons
+        link_line = ""
+        link_match = re.search(
+            r'\$\|\$\s*\n?(.*?)(?=\\hfill|$)',
+            block, re.DOTALL
+        )
+        if link_match:
+            candidate = link_match.group(1).strip()
+            if '\\href' in candidate or '\\fa' in candidate:
+                link_line = candidate
+        
+        # Extract dates
+        dates = ""
+        dates_match = re.search(r'\\hfill\s+(.*?)(?:\n|$)', block)
+        if dates_match:
+            dates = dates_match.group(1).strip()
+        
+        projects.append({
+            "name": name,
+            "link_line": link_line,
+            "dates": dates,
+        })
+    
+    return projects
+
+
+def _read_fixed_sections(tex_content: str) -> dict:
+    """
+    Extract the fixed (non-changing) parts from the template:
+    - preamble (everything before \\begin{document})
+    - contact_and_badge (contact info + CEH badge)
+    - education section
+    - document end
+    """
+    parts = {}
+    
+    # Preamble: everything up to and including \begin{document}
+    preamble_match = re.search(r'(.*?\\begin\{document\})', tex_content, re.DOTALL)
+    parts["preamble"] = preamble_match.group(1) if preamble_match else ""
+    
+    # Contact + Badge: from \begin{document} to first section marker
+    contact_match = re.search(
+        r'(% --- CONTACT INFO ---.*?% --- CEH BADGE ---.*?)(?=% --- (?:SUMMARY|SKILLS|CERT|EXPERIENCE|PROJECTS|EDUCATION) ---)',
+        tex_content, re.DOTALL
+    )
+    parts["contact_and_badge"] = contact_match.group(1).strip() if contact_match else ""
+    
+    # Education: fixed section
+    edu_match = re.search(
+        r'(% --- EDUCATION ---.*?)(?=\\end\{document\})',
+        tex_content, re.DOTALL
+    )
+    parts["education"] = edu_match.group(1).strip() if edu_match else ""
+    
+    return parts
+
+
+# ─────────────────────────────────────────────
+# Main Generator
+# ─────────────────────────────────────────────
 
 def generate_resume_pdf(
     resume_data: Dict[str, Any],
@@ -106,225 +409,148 @@ def generate_resume_pdf(
     platform_used: str = "unknown",
 ) -> Dict[str, str]:
     """
-    Generate an ATS-friendly PDF resume from structured data.
+    Generate a resume PDF by filling AI content into the LaTeX template.
     
-    Args:
-        resume_data: Parsed resume dictionary from response_parser
-        job_title: Brief job title for filename
-        platform_used: Which AI platform was used
-        
+    1. Read latex_code.tex for fixed sections (preamble, contact, badge, education)
+    2. Build content sections from AI data (summary, skills, certs, experience, projects)
+    3. Assemble in the AI-recommended section order
+    4. Compile with pdflatex
+    
     Returns:
         Dict with 'filename', 'filepath', 'preview_url', 'download_url'
     """
     ensure_dirs()
 
-    pdf = ResumePDF()
-    pdf.add_page()
-    pdf.set_margins(14, 12, 14)
-    pdf.set_y(12)
+    # Read the original template
+    with open(TEMPLATE_TEX, "r", encoding="utf-8") as f:
+        original_tex = f.read()
 
-    name = resume_data.get("name", "Resume")
-    contact = resume_data.get("contact", {})
+    # Extract fixed sections from template
+    fixed = _read_fixed_sections(original_tex)
+    
+    # Parse original projects to preserve their links
+    original_projects = _parse_original_projects(original_tex)
+    print(f"[LaTeX] Parsed {len(original_projects)} original projects with links")
+
+    # Extract AI data
     summary = resume_data.get("summary", "")
     skills = resume_data.get("skills", [])
     experience = resume_data.get("experience", [])
     projects = resume_data.get("projects", [])
-    education = resume_data.get("education", [])
     certifications = resume_data.get("certifications", [])
+    section_order = resume_data.get("section_order", [
+        "summary", "skills", "certifications", "experience", "projects", "education"
+    ])
 
-    # ─── Header: Name ───
-    pdf.set_font("Helvetica", "B", 20)
-    pdf.set_text_color(*pdf.COLOR_PRIMARY)
-    pdf.cell(0, 9, _sanitize(name), align="C", new_x="LMARGIN", new_y="NEXT")
-    pdf.ln(1.5)
+    # Build each content section
+    section_content = {
+        "summary": _build_summary(summary),
+        "skills": _build_skills(skills),
+        "certifications": _build_certifications(certifications),
+        "experience": _build_experience(experience),
+        "projects": _build_projects(projects, original_projects),
+        "education": fixed["education"],
+    }
 
-    # ─── Contact Info ───
-    contact_parts = []
-    for key in ["email", "phone", "linkedin", "github", "location"]:
-        val = contact.get(key, "").strip()
-        if val:
-            contact_parts.append(val)
+    # Assemble the full LaTeX document
+    doc_parts = [
+        fixed["preamble"],
+        "",
+        fixed["contact_and_badge"],
+        "",
+    ]
 
-    if contact_parts:
-        pdf.set_font("Helvetica", "", 9)
-        pdf.set_text_color(*pdf.COLOR_MUTED)
-        contact_line = "  |  ".join(contact_parts)
-        pdf.cell(0, 5, _sanitize(contact_line), align="C", new_x="LMARGIN", new_y="NEXT")
-    
-    # Separator line
-    pdf.ln(2)
-    y = pdf.get_y()
-    pdf.set_draw_color(*pdf.COLOR_PRIMARY)
-    pdf.set_line_width(0.6)
-    pdf.line(pdf.l_margin, y, pdf.w - pdf.r_margin, y)
-    pdf.ln(4)
+    # Add sections in the recommended order
+    for section in section_order:
+        if section in section_content:
+            doc_parts.append(section_content[section])
 
-    # ─── Professional Summary ───
-    if summary:
-        pdf._section_title("Professional Summary")
-        pdf.set_font("Helvetica", "", 9.5)
-        pdf.set_text_color(*pdf.COLOR_TEXT)
-        pdf.multi_cell(0, 4.5, _sanitize(summary), new_x="LMARGIN", new_y="NEXT")
-        pdf.ln(3)
+    # Any sections not in the order (safety net)
+    for section in section_content:
+        if section not in section_order:
+            doc_parts.append(section_content[section])
 
-    # ─── Technical Skills ───
-    if skills:
-        pdf._section_title("Technical Skills")
-        pdf.set_font("Helvetica", "", 9.5)
-        pdf.set_text_color(*pdf.COLOR_TEXT)
-        # Join skills with separator (use pipe for latin-1 compatibility)
-        skills_text = "  |  ".join([_sanitize(s) for s in skills])
-        pdf.multi_cell(0, 4.5, skills_text, new_x="LMARGIN", new_y="NEXT")
-        pdf.ln(3)
+    doc_parts.append("\\end{document}")
 
-    # ─── Professional Experience ───
-    if experience:
-        pdf._section_title("Professional Experience")
-        for i, exp in enumerate(experience):
-            title = exp.get("title", "")
-            company = exp.get("company", "")
-            dates = exp.get("dates", "")
-            bullets = exp.get("bullets", [])
+    full_tex = "\n".join(doc_parts)
 
-            # Title and Company
-            pdf.set_font("Helvetica", "B", 10)
-            pdf.set_text_color(*pdf.COLOR_TEXT)
-            
-            title_company = _sanitize(title)
-            if company:
-                title_company += f"  -  {_sanitize(company)}"
-            dates = _sanitize(dates)
-            
-            # Calculate dates width
-            if dates:
-                pdf.set_font("Helvetica", "", 9)
-                dates_w = pdf.get_string_width(dates) + 2
-                title_w = pdf.w - pdf.l_margin - pdf.r_margin - dates_w
-            else:
-                title_w = 0
-                dates_w = 0
-
-            pdf.set_font("Helvetica", "B", 10)
-            pdf.set_text_color(*pdf.COLOR_TEXT)
-            
-            if dates:
-                pdf.cell(title_w, 5, title_company, new_x="END")
-                pdf.set_font("Helvetica", "", 9)
-                pdf.set_text_color(*pdf.COLOR_MUTED)
-                pdf.cell(dates_w, 5, dates, align="R", new_x="LMARGIN", new_y="NEXT")
-            else:
-                pdf.cell(0, 5, title_company, new_x="LMARGIN", new_y="NEXT")
-            
-            pdf.ln(1)
-
-            # Bullets
-            for bullet in bullets:
-                if pdf._check_space(6):
-                    pdf._bullet_point(bullet)
-
-            if i < len(experience) - 1:
-                pdf.ln(1.5)
-        
-        pdf.ln(2)
-
-    # ─── Projects ───
-    if projects:
-        pdf._section_title("Projects")
-        for i, proj in enumerate(projects):
-            proj_name = proj.get("name", "")
-            tech = proj.get("tech", "")
-            bullets = proj.get("bullets", [])
-
-            pdf.set_font("Helvetica", "B", 10)
-            pdf.set_text_color(*pdf.COLOR_TEXT)
-            
-            proj_name = _sanitize(proj_name)
-            tech = _sanitize(tech)
-            if tech:
-                pdf.cell(pdf.get_string_width(proj_name) + 2, 5, proj_name, new_x="END")
-                pdf.set_font("Helvetica", "I", 9)
-                pdf.set_text_color(*pdf.COLOR_MUTED)
-                pdf.cell(0, 5, f"  |  {tech}", new_x="LMARGIN", new_y="NEXT")
-            else:
-                pdf.cell(0, 5, proj_name, new_x="LMARGIN", new_y="NEXT")
-            
-            pdf.ln(1)
-
-            for bullet in bullets:
-                if pdf._check_space(6):
-                    pdf._bullet_point(bullet)
-
-            if i < len(projects) - 1:
-                pdf.ln(1)
-        
-        pdf.ln(2)
-
-    # ─── Education ───
-    if education:
-        pdf._section_title("Education")
-        for edu in education:
-            degree = edu.get("degree", "")
-            institution = edu.get("institution", "")
-            dates = edu.get("dates", "")
-            details = edu.get("details", "")
-
-            pdf.set_font("Helvetica", "B", 10)
-            pdf.set_text_color(*pdf.COLOR_TEXT)
-            
-            degree = _sanitize(degree)
-            institution = _sanitize(institution)
-            dates = _sanitize(dates)
-            details = _sanitize(details)
-
-            if dates:
-                dates_w = pdf.get_string_width(dates) + 2
-                title_w = pdf.w - pdf.l_margin - pdf.r_margin - dates_w
-                pdf.cell(title_w, 5, degree, new_x="END")
-                pdf.set_font("Helvetica", "", 9)
-                pdf.set_text_color(*pdf.COLOR_MUTED)
-                pdf.cell(dates_w, 5, dates, align="R", new_x="LMARGIN", new_y="NEXT")
-            else:
-                pdf.cell(0, 5, degree, new_x="LMARGIN", new_y="NEXT")
-
-            if institution:
-                pdf.set_font("Helvetica", "I", 9.5)
-                pdf.set_text_color(*pdf.COLOR_SECONDARY)
-                pdf.cell(0, 5, institution, new_x="LMARGIN", new_y="NEXT")
-
-            if details:
-                pdf.set_font("Helvetica", "", 9)
-                pdf.set_text_color(*pdf.COLOR_MUTED)
-                pdf.cell(0, 4.5, details, new_x="LMARGIN", new_y="NEXT")
-            
-            pdf.ln(1.5)
-        
-        pdf.ln(1)
-
-    # ─── Certifications ───
-    if certifications:
-        pdf._section_title("Certifications")
-        pdf.set_font("Helvetica", "", 9.5)
-        pdf.set_text_color(*pdf.COLOR_TEXT)
-        certs_text = "  |  ".join([_sanitize(c) for c in certifications])
-        pdf.multi_cell(0, 4.5, certs_text, new_x="LMARGIN", new_y="NEXT")
-
-    # ─── Save PDF ───
+    # Write to a temp .tex file in the project directory (so badge image is accessible)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    safe_name = name.replace(" ", "_")
+    name = resume_data.get("name", "Resume").replace(" ", "_")
     safe_job = "".join(c for c in job_title if c.isalnum() or c in (' ', '-', '_')).strip()[:30]
     safe_job = safe_job.replace(" ", "_") if safe_job else "Resume"
-    filename = f"{safe_name}_{safe_job}_{timestamp}.pdf"
-    filepath = os.path.join(GENERATED_DIR, filename)
+    
+    tex_filename = f"{name}_{safe_job}_{timestamp}.tex"
+    tex_filepath = os.path.join(BASE_DIR, tex_filename)
 
-    pdf.output(filepath)
+    with open(tex_filepath, "w", encoding="utf-8") as f:
+        f.write(full_tex)
+
+    print(f"[LaTeX] Wrote {len(full_tex)} chars to {tex_filename}")
+
+    # Compile with pdflatex (run twice for proper references)
+    pdflatex = _find_pdflatex()
+    pdf_filename = tex_filename.replace(".tex", ".pdf")
+    
+    try:
+        for run in range(2):
+            result = subprocess.run(
+                [
+                    pdflatex,
+                    "-interaction=nonstopmode",
+                    f"-output-directory={GENERATED_DIR}",
+                    tex_filepath,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                cwd=BASE_DIR,  # So badge image is found
+            )
+            
+            if run == 1:  # Only check final run
+                pdf_path = os.path.join(GENERATED_DIR, pdf_filename)
+                if not os.path.exists(pdf_path):
+                    # Check for errors in log
+                    log_file = os.path.join(GENERATED_DIR, tex_filename.replace(".tex", ".log"))
+                    error_msg = "LaTeX compilation failed."
+                    if os.path.exists(log_file):
+                        with open(log_file, "r", encoding="utf-8", errors="replace") as lf:
+                            log = lf.read()
+                        # Find the error lines
+                        errors = re.findall(r'!(.*?)(?:\n(?:l\.\d+.*))?', log)
+                        if errors:
+                            error_msg += " Errors: " + "; ".join(e.strip() for e in errors[:3])
+                    raise RuntimeError(error_msg)
+
+        print(f"[LaTeX] PDF compiled successfully: {pdf_filename}")
+
+    finally:
+        # Clean up temp .tex file and auxiliary files
+        for ext in [".tex", ".aux", ".log", ".out"]:
+            cleanup = tex_filepath.replace(".tex", ext)
+            if os.path.exists(cleanup):
+                try:
+                    os.remove(cleanup)
+                except Exception:
+                    pass
+        # Also clean aux files from generated dir
+        for ext in [".aux", ".log", ".out"]:
+            cleanup = os.path.join(GENERATED_DIR, tex_filename.replace(".tex", ext))
+            if os.path.exists(cleanup):
+                try:
+                    os.remove(cleanup)
+                except Exception:
+                    pass
+
+    pdf_filepath = os.path.join(GENERATED_DIR, pdf_filename)
 
     # Save history metadata
     history_entry = {
-        "filename": filename,
+        "filename": pdf_filename,
         "generated_at": datetime.now().isoformat(),
         "platform": platform_used,
         "job_title": job_title,
-        "name": name,
+        "name": resume_data.get("name", ""),
         "skills_count": len(skills),
         "experience_count": len(experience),
     }
@@ -334,10 +560,10 @@ def generate_resume_pdf(
         json.dump(history_entry, f, indent=2)
 
     return {
-        "filename": filename,
-        "filepath": filepath,
-        "preview_url": f"/api/preview/{filename}",
-        "download_url": f"/api/download/{filename}",
+        "filename": pdf_filename,
+        "filepath": pdf_filepath,
+        "preview_url": f"/api/preview/{pdf_filename}",
+        "download_url": f"/api/download/{pdf_filename}",
     }
 
 

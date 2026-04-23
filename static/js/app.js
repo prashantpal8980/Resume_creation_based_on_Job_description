@@ -333,18 +333,20 @@ async function startGeneration() {
 }
 
 function handleGenerationComplete(data) {
-    showToast('Resume generated successfully!', 'success');
+    showToast('Resume generated successfully! Downloading...', 'success');
 
-    // Show preview
-    state.currentPreviewUrl = data.preview_url;
-    els.previewEmpty.hidden = true;
-    els.previewFrameContainer.hidden = false;
-    els.previewFrame.src = data.preview_url;
-    els.previewActions.hidden = false;
+    // Auto-download the PDF
+    const a = document.createElement('a');
+    a.href = data.download_url;
+    a.download = data.filename || 'resume.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
 
-    // Store download URL
+    // Store download URL for manual re-download
     els.downloadBtn.dataset.url = data.download_url;
     els.downloadBtn.dataset.filename = data.filename;
+    els.previewActions.hidden = false;
 
     // Store resume data for copy
     if (data.resume_data) {

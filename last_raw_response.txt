@@ -1,98 +1,86 @@
 {
 "name": "Prashant Pal",
-"contact": {
-"email": "palprashant8980@gmail.com
-",
-"phone": "+91-8839436332",
-"linkedin": "linkedin.com/in/prashantpal0405",
-"github": "github.com/prashantpal8980",
-"location": "Shamgarh, Madhya Pradesh"
-},
-"summary": "Cybersecurity professional with hands-on experience in security monitoring, threat detection, and incident analysis. Certified in CEH and CompTIA Security+ with strong expertise in SIEM-related tools, IDS/IPS, and vulnerability assessment. Proven ability to triage alerts, investigate security events, and support incident response in cloud and network environments.",
+"section_order": ["summary", "skills", "certifications", "experience", "projects", "education"],
+"summary": "Certified SOC Analyst (CEH v13, CompTIA Security+) with specialized experience in log monitoring, alert triage, and threat detection. Proven track record in identifying data exfiltration indicators and hardening infrastructure to reduce unauthorized access by 99%, with deep technical proficiency in Microsoft and Linux ecosystems.",
 "skills": [
-"Security Monitoring & Alert Triage",
-"Incident Response & Investigation",
-"SIEM & IDS/IPS (Snort)",
-"Threat Hunting & IOC Analysis",
-"Vulnerability Assessment (Nessus)",
-"Penetration Testing (Metasploit, Nmap, Hydra)",
-"Network Analysis (Wireshark)",
-"Linux & Windows Systems",
-"Cloud Security (Oracle Cloud)",
-"IAM & Risk Assessment",
-"MITRE ATT&CK Framework (Basic)",
-"Python, Bash Scripting, SQL"
+{"category": "Security Operations", "items": "Log Analysis, Alert Triage, DLP (Data Loss Prevention), Insider Threat Monitoring, Incident Response, Microsoft Purview, Zscaler Reporting"},
+{"category": "Identity & Access", "items": "Microsoft Entra ID (Azure AD), IAM, MFA Implementation, Access Control Lists (ACLs), Geolocation Anomaly Investigation"},
+{"category": "Technical & Analytical", "items": "Python (Django), Bash Scripting, Advanced Excel (Pivot Tables, Data Filtering), Wireshark, Nmap, Vulnerability Management (Nessus)"},
+{"category": "Risk & Compliance", "items": "Third-Party Risk Assessment, Vendor Management, Risk Mitigation, Security Documentation, Technical Reporting"}
 ],
 "experience": [
 {
-"title": "Research Analyst",
 "company": "Arcgate Technologies",
-"dates": "April 2025 - November 2025",
+"title": "Research Analyst",
+"location": "Udaipur, Rajasthan, India",
+"dates": "April 2025 – November 2025",
 "bullets": [
-"Analyzed large datasets and identified patterns to support security and technology research, maintaining 99.5% data accuracy.",
-"Streamlined data collection and reporting workflows, improving turnaround time by 20%.",
-"Collaborated with cross-functional teams to produce detailed reports aligned with client and compliance requirements.",
-"Documented research findings and ensured structured reporting, supporting audit-ready documentation practices."
+"Managed complex data workflows for global technology clients, maintaining a 99.5% accuracy rating in structured reports and Excel trackers.",
+"Optimized data collection and filtering processes using pivot tables and advanced analysis, reducing report turnaround time by 20%.",
+"Coordinated cross-functional communication to ensure all deliverables met strict internal security and quality standards.",
+"Maintained meticulous records of research findings and vendor-related data to support executive decision-making."
 ]
 },
 {
+"company": "Indian Institute of Technology (IIT)",
 "title": "Cybersecurity Research Intern",
-"company": "Indian Institute of Technology (IIT) Patna",
-"dates": "July 2024 - August 2024",
+"location": "Patna, Bihar, India",
+"dates": "July 2024 – August 2024",
 "bullets": [
-"Developed an ML-based attack detection system to identify DDoS and SQL injection attacks with 80% accuracy.",
-"Performed traffic analysis and feature engineering on network datasets to support threat detection use cases.",
-"Reduced model training latency by 15%, improving efficiency in detecting potential security events.",
-"Simulated real-world attack scenarios to support proactive threat detection and analysis."
+"Developed an automated Attack Detection system to triage security events, achieving 80% accuracy in classifying DDoS and SQL injection patterns.",
+"Analyzed large-scale network traffic datasets to identify anomalies, decreasing processing latency by 15% through feature engineering.",
+"Monitored simulated logs for unusual patterns, mapping malicious activity to known threat indicators and exfiltration techniques."
 ]
 }
 ],
 "projects": [
 {
-"name": "Secure Personal Portfolio Website",
-"tech": "Django, Oracle Cloud, Nginx, Gunicorn",
-"bullets": [
-"Deployed a secure web application with SSL/TLS, firewall rules, and reverse proxy configuration to mitigate web-based threats.",
-"Implemented security best practices aligned with secure deployment standards in cloud environments."
-]
-},
-{
 "name": "Infrastructure Security Hardening",
-"tech": "Nessus, ACLs, Linux",
+"dates": "March 2026",
 "bullets": [
-"Conducted vulnerability assessments and remediated 5 critical security flaws in a simulated enterprise environment.",
-"Implemented access control lists (ACLs) to block 99% of unauthorized traffic, strengthening network security posture."
+"Architected secure network perimeters by implementing Access Control Lists (ACLs), successfully blocking 99% of unauthorized traffic.",
+"Conducted vulnerability scans and alert triage to identify and remediate 5 critical security flaws within an enterprise-simulated environment.",
+"Developed documentation for hardening processes to ensure consistent security posture across the infrastructure."
 ]
 },
 {
 "name": "Brute Force Attack Mitigation",
-"tech": "Hydra, Linux Security Controls",
+"dates": "February 2026",
 "bullets": [
-"Simulated brute-force attacks and implemented MFA and account lockout policies, eliminating unauthorized access attempts.",
-"Analyzed authentication logs to identify attack patterns and strengthen access controls."
+"Investigated unusual sign-in patterns and brute-force attempts using Hydra, leading to the implementation of MFA protocols for identity security.",
+"Reduced successful unauthorized login attempts by 100% by enforcing account lockout policies and monitoring access irregularities.",
+"Simulated insider threat scenarios to test the resilience of credential management systems."
+]
+},
+{
+"name": "Secure Personal Portfolio Website",
+"dates": "March 2026",
+"bullets": [
+"Deployed a secure reverse proxy using Nginx to monitor and filter incoming web traffic, mitigating common web-based vulnerabilities.",
+"Enforced SSL/TLS encryption and server-level firewalls to protect against data interception and unauthorized exfiltration.",
+"Optimized request routing and logging to improve visibility into potential security events and anomalies."
 ]
 },
 {
 "name": "Memory Gallery: Secure Photo Journal",
-"tech": "Django, SQL, Nginx",
+"dates": "February 2025 – March 2025",
 "bullets": [
-"Developed a secure web application with protections against XSS and SQL injection vulnerabilities.",
-"Improved server performance by 30% through optimized deployment and request handling."
+"Engineered session-based access control and input validation to prevent 100% of tested XSS and SQLi vulnerabilities.",
+"Integrated secure Linux server configurations with Nginx, improving request handling efficiency by 30% while maintaining audit logs."
 ]
-}
-],
-"education": [
-{
-"degree": "Bachelor of Technology in Computer Science and Engineering",
-"institution": "Sir Padampat Singhania University",
-"dates": "2025",
-"details": "CGPA: 7.0/10.0"
 }
 ],
 "certifications": [
-"Certified Ethical Hacker (CEH v13)",
-"CompTIA Security+ (SY0-701)",
-"Cyber Security Expert – Simplilearn",
-"CISSP Assessment Completion"
-]
+{"name": "Certified Ethical Hacker (CEH v13)", "issuer": "EC-Council (ID: ECC9023145867)", "date": "February 2026"},
+{"name": "CompTIA Security+ (SY0-701)", "issuer": "Simplilearn", "date": "February 2026"},
+{"name": "Cyber Security Expert (Masters Program)", "issuer": "Simplilearn", "date": "March 2026"},
+{"name": "CISSP Assessment Completion", "issuer": "Simplilearn", "date": "March 2026"}
+],
+"education": {
+"university": "Sir Padampat Singhania University",
+"location": "Udaipur, Rajasthan, India",
+"degree": "Bachelor of Technology in Computer Science and Engineering",
+"dates": "July 2025",
+"gpa": "7.0/10.0"
+}
 }
